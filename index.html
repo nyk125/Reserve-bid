@@ -31,6 +31,12 @@ header.top{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;justify-con
   padding-bottom:16px;margin-bottom:18px;border-bottom:1px solid var(--line)}
 .brand h1{font-size:26px;font-weight:800;margin:0;text-transform:uppercase}
 .brand p{margin:5px 0 0;color:var(--muted);font-size:13px;max-width:56ch}
+.brand .credit{margin:8px 0 0;padding:6px 10px;border-left:2px solid var(--amber);
+  background:rgba(245,168,60,.07);border-radius:0 4px 4px 0;color:var(--text);font-size:12.5px;
+  overflow-wrap:anywhere}
+.brand .credit a{color:var(--amber);text-decoration:none;border-bottom:1px solid rgba(245,168,60,.45);
+  white-space:nowrap;margin-left:2px}
+.brand .credit a:hover{border-bottom-color:var(--amber)}
 .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
 
 .setup{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
@@ -259,9 +265,11 @@ JavaScript is switched off in whatever is showing this file, so the calendar and
 
 iOS will not open a local HTML file in Safari — there's no way to do it from the Files app. Pick one of these instead:
 
-1. USE A FILE APP WITH A REAL BROWSER. Documents by Readdle is free and runs local HTML with scripts. Copy this file into it and tap it there.
+1. PUT IT ONLINE. Upload this file to any static host (GitHub Pages, Netlify) and open the link in Safari. Then Share -> Add to Home Screen for a full-screen icon that works offline.
 
-2. USE A COMPUTER. Double-clicking the file on a Mac or PC just works.
+2. USE A FILE APP WITH A REAL BROWSER. Documents by Readdle is free and runs local HTML with scripts. Copy this file into it and tap it there.
+
+3. USE A COMPUTER. Double-clicking the file on a Mac or PC just works.
   </div>
 </noscript>
 
@@ -269,6 +277,8 @@ iOS will not open a local HTML file in Safari — there's no way to do it from t
   <div class="brand">
     <div class="eyebrow">Article 29 · reserve</div>
     <h1>Reserve Bid Planner</h1>
+    <p class="credit">If this helped you in any way, Shine points are always appreciated — Nykolai Werbowy
+      <a href="https://aircanada.achievers.com/" target="_blank" rel="noopener noreferrer">aircanada.achievers.com</a></p>
     <p>Tap a day to pin it off. The calendar redraws to a pattern that holds every day you've pinned, and days that no longer fit go dim.</p>
   </div>
   <div class="setup">
