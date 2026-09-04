@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e141d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Reserve Bid Planner — Article 29</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0e141d; --panel:#161f2b; --panel2:#1d2836; --line:#2b3a4c; --line-soft:#212e3d;
+  --text:#e0e9f4; --muted:#8497ad; --dim:#5e7186;
+  --amber:#f5a83c; --amber-deep:#c47f22; --ice:#5aa6cc; --red:#e2686b;
+  --r:6px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--ink);color:var(--text);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%;overflow-x:hidden}
+h1,h2,.display{font-family:Archivo,"Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:-.02em}
+.mono,.art{font-family:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+.wrap{max-width:1260px;margin:0 auto;padding:20px 18px 60px;
+  padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}
+
+header.top{display:flex;flex-wrap:wrap;gap:18px;align-items:flex-end;justify-content:space-between;
+  padding-bottom:16px;margin-bottom:18px;border-bottom:1px solid var(--line)}
+.brand h1{font-size:26px;font-weight:800;margin:0;text-transform:uppercase}
+.brand p{margin:5px 0 0;color:var(--muted);font-size:13px;max-width:56ch}
+.eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+
+.setup{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-size:11px;letter-spacing:.11em;text-transform:uppercase;color:var(--dim);font-family:"IBM Plex Mono",monospace}
+select,input[type=number],input[type=date]{background:var(--panel2);color:var(--text);border:1px solid var(--line);
+  border-radius:var(--r);padding:8px 10px;font:inherit;font-size:14px}
+input[type=number]{width:92px}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--ice);outline-offset:2px}
+.jserr{margin:0 0 14px;padding:10px 12px;border:1px solid var(--red);border-radius:6px;
+  background:#2a1618;color:#ffb3b5;font-size:12.5px;font-family:"IBM Plex Mono",ui-monospace,monospace;
+  white-space:pre-wrap;word-break:break-word;line-height:1.5}
+.jserr[hidden]{display:none}
+select{-webkit-appearance:none;appearance:none;padding-right:28px;
+  background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%238497ad' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center;background-size:11px}
+.btn{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:var(--r);
+  padding:8px 12px;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover:not(:disabled){border-color:var(--ice);color:#fff}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.ghost{background:transparent}
+.btn.clear{margin-left:auto;background:transparent;border-color:#3d2b2d;color:var(--muted)}
+.btn.clear:hover:not(:disabled){border-color:var(--red);color:var(--red)}
+.check{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;padding-bottom:9px;cursor:pointer}
+.check input{accent-color:var(--amber);width:15px;height:15px}
+
+.cols{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:22px;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line-soft);border-radius:10px;padding:16px}
+.card + .card{margin-top:16px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.1em;margin:0 0 12px;color:var(--muted);font-weight:700}
+
+/* ---- calendar header line ---- */
+.calhead{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+.calhead .display{font-size:19px;font-weight:700}
+.tally{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted)}
+.tally b{color:var(--amber);font-weight:600}
+
+/* ---- calendar ---- */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.dow{text-align:center;font-size:10px;letter-spacing:.14em;color:var(--dim);
+  font-family:"IBM Plex Mono",monospace;padding-bottom:4px;text-transform:uppercase}
+.day{position:relative;aspect-ratio:1/.94;min-height:52px;border:1px solid var(--line-soft);border-radius:8px;
+  background:#1b2634;color:var(--text);padding:7px 8px;cursor:pointer;display:flex;flex-direction:column;
+  justify-content:space-between;align-items:flex-start;font:inherit;text-align:left;overflow:hidden;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  transition:background .14s,border-color .14s,transform .06s}
+.day:hover{border-color:var(--ice)}
+.day:active{transform:scale(.96)}
+.day .num{font-family:Archivo,sans-serif;font-weight:700;font-size:18px;line-height:1}
+.day .mon{font-size:9px;letter-spacing:.1em;color:var(--dim);font-family:"IBM Plex Mono",monospace;text-transform:uppercase;margin-left:3px}
+.day .lbl{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.09em;color:var(--dim)}
+/* the only two states */
+.day.off{background:var(--amber);border-color:var(--amber)}
+.day.off .num{color:#181103}
+.day.off .lbl{color:#6d4c11;font-weight:600}
+.day.off .mon{color:#7d5915}
+/* pinned by the pilot */
+.day.req{box-shadow:inset 0 0 0 2px var(--ice)}
+.day .pin{position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:var(--ice);
+  box-shadow:0 0 0 2px rgba(14,20,29,.55)}
+/* not choosable */
+.day.blocked{opacity:.34}
+.day.out{background:transparent;border-color:transparent;cursor:default;pointer-events:none}
+.day.out .num{color:#2f3b49}
+.day.void{background:repeating-linear-gradient(45deg,#18212d,#18212d 4px,#141d28 4px,#141d28 8px);
+  cursor:default;pointer-events:none}
+.day.void .num,.day.void .lbl{color:#46566a}
+.day.conflict{border-color:var(--red);box-shadow:inset 0 0 0 2px var(--red)}
+.day.conflict .num{color:var(--red)}
+
+.calnote{margin:12px 0 0;font-size:12.5px;color:var(--red);border-left:2px solid var(--red);padding-left:10px}
+.calhint{margin:-4px 0 14px;font-size:12.5px;color:var(--dim);border-left:2px solid var(--ice);padding-left:10px}
+.legend{display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:7px;vertical-align:-1px}
+
+/* ---- strip ---- */
+.stripwrap{margin-top:20px;padding-top:16px;border-top:1px solid var(--line-soft)}
+.strip{display:flex;gap:2px;height:22px}
+.strip .cell{flex:1;border-radius:2px;background:#243244}
+.strip .cell.do{background:var(--amber)}
+.striplabels{display:flex;gap:2px;margin-top:6px}
+.striplabels span{flex:1;text-align:center;font-size:9px;color:var(--dim);font-family:"IBM Plex Mono",monospace}
+
+/* ---- rules ---- */
+.rules{display:flex;flex-direction:column}
+.rule{display:grid;grid-template-columns:78px 1fr;gap:12px;padding:8px 0;border-top:1px solid var(--line-soft);align-items:baseline}
+.rule:first-child{border-top:0}
+.art{font-size:11px;color:var(--dim);white-space:nowrap}
+.rule .txt{font-size:12.5px;color:var(--muted)}
+.rule .txt b{color:var(--text);font-weight:600}
+
+/* ---- verdict / arrangement ---- */
+.verdict{border-left:3px solid var(--line);padding:2px 0 2px 14px}
+.verdict.ok{border-color:var(--amber)}
+.verdict.no{border-color:var(--red)}
+.verdict .headline{font-family:Archivo,sans-serif;font-weight:700;font-size:19px;line-height:1.25;margin:0}
+.verdict .sub{color:var(--muted);font-size:13px;margin:6px 0 0}
+.bignum{font-family:Archivo,sans-serif;font-size:34px;font-weight:800;line-height:1;color:var(--amber)}
+.bignum small{font-size:14px;color:var(--muted);font-weight:600;margin-left:3px}
+.meter{height:5px;background:var(--panel2);border-radius:3px;overflow:hidden;margin:12px 0 4px}
+.meter span{display:block;height:100%;background:var(--amber)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-family:"IBM Plex Mono",monospace;font-size:11.5px;padding:3px 8px;border-radius:99px;
+  background:var(--panel2);border:1px solid var(--line);color:var(--text)}
+.chip.amber{border-color:var(--amber-deep);color:var(--amber)}
+.chip.red{border-color:#6d3234;color:var(--red)}
+.arrnav{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.arrnav .count{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);flex:1;text-align:center}
+.arrspec{display:flex;flex-direction:column;gap:6px}
+.specrow{display:grid;grid-template-columns:96px 1fr;gap:10px;font-size:12.5px;align-items:baseline}
+.specrow .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
+.specrow .v{font-family:"IBM Plex Mono",monospace;color:var(--text)}
+.specrow .v b{color:var(--amber);font-weight:600}
+
+/* ---- pattern list ---- */
+.plist{display:flex;flex-direction:column;gap:1px;background:var(--line-soft);border-radius:var(--r);overflow:hidden}
+.prow{display:flex;align-items:center;gap:10px;background:var(--panel);padding:9px 11px}
+.prow .pname{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:600;min-width:74px}
+.prow .pbar{flex:1;height:4px;background:var(--panel2);border-radius:2px;overflow:hidden}
+.prow .pbar span{display:block;height:100%;background:var(--ice)}
+.prow .pct{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);min-width:52px;text-align:right}
+.tag{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--dim);border:1px solid var(--line);border-radius:3px;padding:1px 4px}
+.orders{display:flex;flex-wrap:wrap;gap:5px;padding:0 11px 10px;background:var(--panel)}
+.ord{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:3px 7px;border-radius:3px;
+  background:var(--panel2);border:1px solid var(--line);color:var(--muted);cursor:pointer}
+.ord:hover{border-color:var(--amber);color:var(--amber)}
+.ord.active{background:var(--amber);border-color:var(--amber);color:#1a1206;font-weight:600}
+
+.note{font-size:12px;color:var(--dim);line-height:1.55}
+.note b{color:var(--muted);font-weight:600}
+details.adv summary{cursor:pointer;color:var(--muted);font-size:12px;font-family:"IBM Plex Mono",monospace;letter-spacing:.06em;text-transform:uppercase}
+details.adv[open] summary{margin-bottom:14px}
+.advgrid{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.empty{color:var(--muted);font-size:13px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.warn{border-left:2px solid var(--red);padding-left:10px;color:var(--red);font-size:12.5px;margin-top:12px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- touch devices: no sticky hover states ---------- */
+@media (hover:none){
+  .day:hover{border-color:var(--line-soft)}
+  .day.off:hover{border-color:var(--amber)}
+  .btn:hover:not(:disabled){border-color:var(--line);color:var(--text)}
+  .btn.clear:hover:not(:disabled){border-color:#3d2b2d;color:var(--muted)}
+  .ord:hover{border-color:var(--line);color:var(--muted)}
+  .ord.active:hover{border-color:var(--amber);color:#1a1206}
+}
+
+/* ---------- one column: calendar and results first, reference material last ---------- */
+@media(max-width:980px){
+  .cols{display:flex;flex-direction:column;gap:16px}
+  .col{display:contents}
+  .card,.card + .card{margin-top:0}
+  #cCal{order:1} #cStand{order:2} #cArr{order:3} #cPat{order:4} #cDates{order:5} #cRules{order:6} #cNote{order:7}
+}
+
+/* ---------- phones ---------- */
+@media(max-width:640px){
+  .wrap{padding-top:14px;padding-bottom:44px;
+    padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right))}
+  header.top{gap:12px;padding-bottom:12px;margin-bottom:14px}
+  .brand{flex:1 1 100%}
+  .brand h1{font-size:21px}
+  .brand p{font-size:12.5px}
+  .setup{width:100%;gap:8px}
+  .setup .field{flex:1 1 calc(50% - 4px);min-width:0}
+  /* 16px keeps iOS from zooming the page when a control gets focus */
+  select,input[type=number],input[type=date]{width:100%;font-size:16px;padding:9px 8px}
+  .card{padding:12px;border-radius:8px}
+  .calhead{margin-bottom:12px}
+  .calhead .display{font-size:17px}
+  .toolbar{gap:6px;margin-bottom:12px}
+  .toolbar .btn{flex:1 1 auto;min-height:44px;font-size:12.5px;padding:9px 8px}
+  .btn.clear{margin-left:0;flex-basis:100%}
+  .cal{gap:3px}
+  .dow{font-size:9px;letter-spacing:.05em;padding-bottom:2px}
+  .day{padding:4px;border-radius:5px;aspect-ratio:1/1.04;min-height:44px}
+  .day .num{font-size:15px}
+  .day .lbl{font-size:8px;letter-spacing:.03em}
+  .day .mon{display:none}
+  .day .pin{top:4px;right:4px;width:6px;height:6px}
+  .legend{gap:9px;font-size:11px;margin-top:12px}
+  .stripwrap{margin-top:16px;padding-top:12px}
+  .rule{grid-template-columns:1fr;gap:1px;padding:9px 0}
+  .specrow{grid-template-columns:1fr;gap:1px;margin-bottom:6px}
+  .arrnav .count{font-size:11px}
+  .bignum{font-size:28px}
+  .verdict .headline{font-size:17px}
+  .prow{padding:8px 9px;gap:8px}
+  .prow .pname{min-width:58px;font-size:12px}
+  .prow .pct{min-width:44px;font-size:11px}
+  .orders{padding:0 9px 9px}
+  .ord{padding:5px 8px}
+  .advgrid{gap:10px}
+}
+@media(max-width:360px){
+  .wrap{padding-left:max(8px,env(safe-area-inset-left));padding-right:max(8px,env(safe-area-inset-right))}
+  .cal{gap:2px}
+  .day{padding:3px;min-height:40px}
+  .day .num{font-size:13px}
+}
+</style>
+</head>
+<body>
+<script>
+/* Deliberately ES5 and in its own tag: a syntax error in the main script below would stop that
+   script from running at all, and this handler still catches it and puts the reason on screen. */
+(function(){
+  function show(msg){
+    var el=document.getElementById("jsErr");
+    if(!el){document.addEventListener("DOMContentLoaded",function(){show(msg);});return;}
+    el.textContent="This page hit a script error, so parts of it won't work. Please send this line: "+msg;
+    el.hidden=false;
+  }
+  window.addEventListener("error",function(e){
+    show((e.message||"unknown error")+(e.filename?" — "+String(e.filename).split("/").pop():"")+(e.lineno?" line "+e.lineno:""));
+  });
+})();
+</script>
+<div class="wrap">
+<div class="jserr" id="jsErr" hidden></div>
+<noscript>
+  <div class="jserr" style="color:#ffd9a3;border-color:var(--amber);background:#2a2013">
+JavaScript is switched off in whatever is showing this file, so the calendar and the pattern engine can't run. You're most likely looking at a Quick Look preview, which renders the page but won't run scripts.
+
+iOS will not open a local HTML file in Safari — there's no way to do it from the Files app. Pick one of these instead:
+
+1. PUT IT ONLINE. Upload this file to any static host (GitHub Pages, Netlify) and open the link in Safari. Then Share -> Add to Home Screen for a full-screen icon that works offline.
+
+2. USE A FILE APP WITH A REAL BROWSER. Documents by Readdle is free and runs local HTML with scripts. Copy this file into it and tap it there.
+
+3. USE A COMPUTER. Double-clicking the file on a Mac or PC just works.
+  </div>
+</noscript>
+
+<header class="top">
+  <div class="brand">
+    <div class="eyebrow">Article 29 · reserve</div>
+    <h1>Reserve Bid Planner</h1>
+    <p>Tap a day to pin it off. The calendar redraws to a pattern that holds every day you've pinned, and days that no longer fit go dim.</p>
+  </div>
+  <div class="setup">
+    <div class="field"><label for="mSel">Block month</label><select id="mSel">
+      <option value="0">January</option><option value="1">February</option>
+      <option value="2">March</option><option value="3">April</option>
+      <option value="4">May</option><option value="5">June</option>
+      <option value="6">July</option><option value="7">August</option>
+      <option value="8">September</option><option value="9">October</option>
+      <option value="10">November</option><option value="11">December</option>
+    </select></div>
+    <div class="field"><label for="ySel">Year</label><select id="ySel">
+      <option value="2025">2025</option><option value="2026">2026</option>
+      <option value="2027">2027</option><option value="2028">2028</option>
+      <option value="2029">2029</option><option value="2030">2030</option>
+      <option value="2031">2031</option>
+    </select></div>
+    <div class="field"><label for="dbm">DBM</label><input type="number" id="dbm" min="0" max="200" step="1" value="80"></div>
+    <div class="field"><label for="carry">Reserve days carried in</label><input type="number" id="carry" min="0" max="5" step="1" value="0"></div>
+  </div>
+</header>
+
+<div class="cols">
+  <div class="col">
+    <div class="card" id="cCal">
+      <div class="calhead">
+        <div>
+          <div class="eyebrow">Block period</div>
+          <div class="display" id="rangeTxt"></div>
+        </div>
+        <div class="tally" id="tally"></div>
+      </div>
+
+      <div class="toolbar">
+        <button class="btn" id="btnPrev">← Another arrangement</button>
+        <button class="btn" id="btnNext">Another arrangement →</button>
+        <button class="btn ghost" id="btnWeekends">Pin what weekends I can</button>
+        <button class="btn clear" id="btnClear" title="Wipe every pinned day and go back to a blank month">Clear all dates</button>
+      </div>
+
+      <p class="calhint" id="calHint" hidden>Tap the days you need off. The rest of the month fills in around them.</p>
+
+      <div class="cal" id="cal"></div>
+      <p class="calnote" id="calNote" hidden></p>
+
+      <div class="legend">
+        <span><i style="background:var(--amber)"></i>Day off</span>
+        <span><i style="background:#1b2634;border:1px solid var(--line)"></i>Day on</span>
+        <span><i style="background:var(--ice);border-radius:50%"></i>Pinned off by you</span>
+        <span style="opacity:.5"><i style="background:#1b2634;border:1px solid var(--line)"></i>Dimmed — won't fit with your pins</span>
+      </div>
+
+      <div class="stripwrap">
+        <div class="eyebrow" style="margin-bottom:7px">The whole block, day one to day <span id="lastDayNum"></span></div>
+        <div class="strip" id="strip"></div>
+        <div class="striplabels" id="stripLabels"></div>
+      </div>
+      <div id="feasWarn"></div>
+    </div>
+
+    <div class="card" id="cDates">
+      <details class="adv">
+        <summary>Block dates &amp; partial reserve block</summary>
+        <div class="advgrid">
+          <div class="field"><label for="startD">Block starts</label><input type="date" id="startD"></div>
+          <div class="field"><label for="endD">Block ends</label><input type="date" id="endD"></div>
+          <button class="btn" id="btnReset">Reset to published dates</button>
+        </div>
+        <div class="advgrid" style="margin-top:14px">
+          <label class="check"><input type="checkbox" id="partial"> Partial reserve block <span class="art">29.01.03</span></label>
+          <div class="field"><label for="pStart">Reserve period starts</label><input type="date" id="pStart" disabled></div>
+          <div class="field"><label for="pEnd">Reserve period ends</label><input type="date" id="pEnd" disabled></div>
+        </div>
+        <p class="note" style="margin-top:12px" id="partialNote"></p>
+      </details>
+    </div>
+
+    <div class="card" id="cRules">
+      <h2>Rules in force</h2>
+      <div class="rules" id="rules"></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="card" id="cStand">
+      <h2>Where you stand</h2>
+      <div id="verdict"></div>
+      <div id="lockedWrap" hidden>
+        <div class="eyebrow" style="margin-top:16px">Comes with it</div>
+        <p class="note" style="margin:4px 0 0">Off in every pattern that still fits:</p>
+        <div class="chips" id="lockedChips"></div>
+      </div>
+      <div id="missWrap" hidden>
+        <div class="eyebrow" style="margin-top:16px">Sticking point</div>
+        <div id="missBody"></div>
+      </div>
+    </div>
+
+    <div class="card" id="cArr">
+      <h2>On the calendar now</h2>
+      <div class="arrnav">
+        <button class="btn" id="btnPrev2">←</button>
+        <span class="count" id="arrCount"></span>
+        <button class="btn" id="btnNext2">→</button>
+      </div>
+      <div class="arrspec" id="arrSpec"></div>
+    </div>
+
+    <div class="card" id="cPat">
+      <h2>Patterns that still fit</h2>
+      <p class="note" style="margin:-6px 0 12px">Tap an arrangement to put it on the calendar.</p>
+      <div class="plist" id="plist"></div>
+    </div>
+
+    <div class="card" id="cNote">
+      <p class="note">
+        <b>Scope.</b> Built on 29.01.01, .02, .03 and .05. Moving G days under 29.01.04 is left out, so nothing here assumes a granted move request.
+        <br><br>
+        <b>What this can't tell you.</b> It shows what the patterns can structurally give you, not what your seniority will award. A day off that
+        only two combinations produce is a longer shot than one forty produce, but PBS still awards in seniority order.
+      </p>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ===================== Article 29.01 ===================== */
+const R={
+  minOn:3, maxOn:5,        /* 29.01.02 — shorter only at the period ends */
+  minSet:2, maxSet:6,      /* 29.01.02.02 */
+  minSets:3, maxSets:5,    /* 29.01.02.01 */
+  maxSixes:1,              /* 29.01.02.02.01 */
+  maxFives:1,              /* 29.01.02.02.02 */
+  maxTwos:3,               /* 29.01.02.02.03 */
+  crossBlockMax:5,         /* 29.01.05 */
+  dbmThreshold:78          /* 29.01.01 */
+};
+const CHART={
+  "31|13":["2.2.2.3.4","2.2.3.3.3","2.2.3.6","2.2.4.5","2.3.3.5","2.3.4.4","3.3.3.4","3.4.6","4.4.5"],
+  "30|12":["2.2.2.3.3","2.2.2.6","2.2.3.5","2.2.4.4","2.3.3.4","2.4.6","3.3.3.3","3.3.6","3.4.5","4.4.4"]
+};
+const BLOCKS=[
+  {name:"January",s:{m:0,d:1},e:{m:0,d:30}},   {name:"February",s:{m:0,d:31},e:{m:2,d:1}},
+  {name:"March",s:{m:2,d:2},e:{m:3,d:1}},      {name:"April",s:{m:3,d:2},e:{m:4,d:2}},
+  {name:"May",s:{m:4,d:3},e:{m:5,d:1}},        {name:"June",s:{m:5,d:2},e:{m:6,d:1}},
+  {name:"July",s:{m:6,d:2},e:{m:6,d:31}},      {name:"August",s:{m:7,d:1},e:{m:7,d:30}},
+  {name:"September",s:{m:7,d:31},e:{m:8,d:29}},{name:"October",s:{m:8,d:30},e:{m:9,d:30}},
+  {name:"November",s:{m:9,d:31},e:{m:10,d:30}},{name:"December",s:{m:11,d:1},e:{m:11,d:31}}
+];
+
+/* ===================== dates ===================== */
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DAY=86400000;
+const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const fromISO=s=>{const p=String(s).split("-").map(Number);return (p.length===3&&!p.some(isNaN))?new Date(p[0],p[1]-1,p[2]):null;};
+const addDays=(d,n)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+n);
+const fmt=d=>MON[d.getMonth()]+" "+d.getDate();
+const fmtLong=d=>DOW[d.getDay()]+" "+MON[d.getMonth()]+" "+d.getDate();
+const span=(a,b)=>Math.round((b-a)/DAY)+1;
+
+/* ===================== state ===================== */
+const state={year:0,monthIdx:0,blockStart:null,blockEnd:null,periodStart:null,periodEnd:null,
+  partial:false,dbm:80,carry:0,req:new Set(),combos:[],nDays:0,blockDays:0,off:0,
+  view:null,      /* {hIdx, sIdx, mask, combo} — the arrangement drawn on the calendar */
+  A:null};        /* last analysis */
+
+/* ===================== pattern engine ===================== */
+function requiredOff(blockDays,dbm){
+  const low=Number.isFinite(dbm)&&dbm<=R.dbmThreshold;
+  return blockDays>=31?(low?14:13):(low?13:12);
+}
+function patternSets(off,minSets,maxSets){
+  const out=[],cur=[];
+  (function rec(rem,cap){
+    if(rem===0){ if(cur.length>=minSets) out.push(cur.slice()); return; }
+    if(cur.length>=maxSets) return;
+    for(let p=Math.min(cap,rem,R.maxSet);p>=R.minSet;p--){
+      if(rem-p!==0&&rem-p<R.minSet)continue;
+      const n=cur.filter(x=>x===p).length;
+      if(p===6&&n>=R.maxSixes)continue;
+      if(p===5&&n>=R.maxFives)continue;
+      if(p===2&&n>=R.maxTwos)continue;
+      cur.push(p);rec(rem-p,p);cur.pop();
+    }
+  })(off,R.maxSet);
+  return out;
+}
+function uniquePerms(ms){
+  const a=[...ms].sort((x,y)=>x-y),u=Array(a.length).fill(false),c=[],o=[];
+  (function rec(){
+    if(c.length===a.length){o.push(c.slice());return;}
+    for(let i=0;i<a.length;i++){
+      if(u[i])continue;
+      if(i>0&&a[i]===a[i-1]&&!u[i-1])continue;
+      u[i]=true;c.push(a[i]);rec();c.pop();u[i]=false;
+    }
+  })();
+  return o;
+}
+function gapVectors(k,work,leadCap){
+  const out=[],cur=[];
+  (function rec(i,rem){
+    if(i===k+1){ if(rem===0) out.push(cur.slice()); return; }
+    let loRest=0,hiRest=0;
+    for(let j=i+1;j<=k;j++){ loRest+=(j===k?0:R.minOn); hiRest+=R.maxOn; }
+    const lo=(i===0||i===k)?0:R.minOn;
+    const hi=(i===0)?Math.min(R.maxOn,leadCap):R.maxOn;
+    for(let v=lo;v<=hi;v++){
+      const rest=rem-v;
+      if(rest<loRest||rest>hiRest)continue;
+      cur.push(v);rec(i+1,rest);cur.pop();
+    }
+  })(0,work);
+  return out;
+}
+function buildCombos(){
+  const n=state.nDays,off=state.off,work=n-off;
+  const leadCap=Math.max(0,R.crossBlockMax-state.carry);
+  const chart=CHART[state.blockDays+"|"+off];
+  const combos=[];
+  if(off>0&&work>=0&&n<=31){
+    const minSets=state.partial?1:R.minSets;
+    for(const set of patternSets(off,minSets,R.maxSets)){
+      const key=[...set].sort((a,b)=>a-b).join(".");
+      const gv=gapVectors(set.length,work,leadCap);
+      if(!gv.length)continue;
+      for(const order of uniquePerms(set)){
+        const masks=[],gaps=[];
+        for(const g of gv){
+          let day=0,m=0;
+          for(let i=0;i<order.length;i++){
+            day+=g[i];
+            for(let j=0;j<order[i];j++){m|=(1<<day);day++;}
+          }
+          masks.push(m);gaps.push(g);
+        }
+        combos.push({pat:key,order,masks,gaps,charted:!!chart,inChart:!chart||chart.includes(key)});
+      }
+    }
+  }
+  state.combos=combos;
+}
+
+/* ===================== analysis ===================== */
+const reqMask=()=>{let m=0;for(const d of state.req)m|=(1<<d);return m;};
+const popcount=x=>{let c=0;while(x){x&=x-1;c++;}return c;};
+/* union of matching schedules = every day still gettable; intersection = every day guaranteed */
+function analyse(){
+  const Rq=reqMask(),hits=[];
+  let union=0,inter=(Math.pow(2,state.nDays)-1)|0,matchScheds=0,bestCover=-1;
+  for(const c of state.combos){
+    const ok=[];
+    for(let i=0;i<c.masks.length;i++){
+      const m=c.masks[i];
+      if((m&Rq)===Rq){ok.push(i);union|=m;inter&=m;matchScheds++;}
+      else{const cov=popcount(m&Rq);if(cov>bestCover)bestCover=cov;}
+    }
+    if(ok.length)hits.push({c,ok});
+  }
+  if(!matchScheds){union=0;inter=0;}else bestCover=state.req.size;
+  return {Rq,hits,total:state.combos.length,union,inter,matchScheds,bestCover};
+}
+/* keep the drawn arrangement as close to the previous one as possible so the calendar doesn't jump */
+function pickView(a,prevMask){
+  /* nothing drawn until the pilot pins a day — the month starts blank */
+  if(!a.hits.length||!state.req.size)return null;
+  let best=null,bestScore=-1;
+  for(let h=0;h<a.hits.length;h++){
+    const hit=a.hits[h];
+    for(const i of hit.ok){
+      const m=hit.c.masks[i];
+      const s=prevMask==null?0:popcount(m&prevMask);
+      if(s>bestScore){bestScore=s;best={hIdx:h,sIdx:i,mask:m,combo:hit.c};}
+      if(prevMask==null)break;
+    }
+    if(prevMask==null&&best)break;
+  }
+  return best;
+}
+function recompute(keepView){
+  const prev=keepView&&state.view?state.view.mask:null;
+  state.A=analyse();
+  state.view=pickView(state.A,prev);
+  render();
+}
+
+/* ===================== render ===================== */
+const $=id=>document.getElementById(id);
+function note(msg){const el=$("calNote");if(!el)return;el.textContent=msg||"";el.hidden=!msg;}
+function render(){
+  const a=state.A;
+  renderRules();renderCalendar(a);renderStrip(a);renderTally(a);
+  renderVerdict(a);renderArrangement(a);renderPatterns(a);
+  const n=a.hits.length;
+  const idle=!state.view;
+  $("btnPrev").disabled=$("btnNext").disabled=$("btnPrev2").disabled=$("btnNext2").disabled=(n<2||idle);
+  $("btnClear").disabled=!(state.req.size||state.view);
+  $("calHint").hidden=!idle;
+  $("feasWarn").innerHTML=state.combos.length?"":
+    '<p class="warn">No pattern satisfies 29.01.02 for '+state.off+' days off across '+state.nDays+
+    ' days. Check the block dates, the DBM, or the reserve days carried in.</p>';
+}
+function renderTally(a){
+  const base=state.blockDays+" days · <b>"+state.off+" off</b>"+(state.partial?" · partial ("+state.nDays+"d)":"");
+  $("tally").innerHTML = state.req.size
+    ? base+" · pinned <b>"+state.req.size+"</b>"+(a.hits.length?" · <b>"+a.hits.length+"</b> of "+a.total+" patterns still fit":"")
+    : base+" · <b>"+a.total+"</b> patterns to choose from";
+  $("lastDayNum").textContent=state.nDays;
+}
+function renderRules(){
+  const low=Number.isFinite(state.dbm)&&state.dbm<=R.dbmThreshold;
+  const rows=[
+    ["29.01.01","<b>"+state.off+" days off</b> in this "+state.nDays+"-day "+(state.partial?"reserve period":"block period")+
+      (state.partial?", prorated from the "+requiredOff(state.blockDays,state.dbm)+" owed for the full block":
+       ", because the DBM is "+(low?"at or below "+R.dbmThreshold:"above "+R.dbmThreshold))+"."],
+    ["29.01.02","Reserve runs <b>3 to 5 days</b> at a stretch, shorter only at the ends of the period."],
+    ["29.01.02.01","<b>"+(state.partial?"Up to 5":"3 to 5")+" sets</b> of days off."],
+    ["29.01.02.02","Each set is <b>2 to 6 days</b> long."],
+    ["…02.01–03","At most one set of 6, one set of 5, and three sets of 2."],
+    ["29.01.05","Reserve can't run more than 5 days in a row across two blocks. You carried in <b>"+state.carry+
+      "</b>, so this one opens with at most <b>"+Math.max(0,R.crossBlockMax-state.carry)+"</b>."]
+  ];
+  $("rules").innerHTML=rows.map(r=>'<div class="rule"><span class="art">'+r[0]+'</span><span class="txt">'+r[1]+'</span></div>').join("");
+}
+
+function renderCalendar(a){
+  const cal=$("cal");cal.innerHTML="";
+  DOW.forEach(d=>{const e=document.createElement("div");e.className="dow";e.textContent=d;cal.appendChild(e);});
+  const gridStart=addDays(state.blockStart,-state.blockStart.getDay());
+  const gridEnd=addDays(state.blockEnd,6-state.blockEnd.getDay());
+  const cells=span(gridStart,gridEnd);
+  const view=state.view?state.view.mask:0;
+  const idle=!state.view;
+  for(let i=0;i<cells;i++){
+    const dt=addDays(gridStart,i);
+    const inBlock=dt>=state.blockStart&&dt<=state.blockEnd;
+    const idx=Math.round((dt-state.periodStart)/DAY);
+    const inPeriod=inBlock&&idx>=0&&idx<state.nDays;
+    const b=document.createElement("button");b.type="button";
+    if(!inBlock){
+      b.className="day out";b.disabled=true;
+      b.innerHTML='<span class="num">'+dt.getDate()+'</span>';
+      cal.appendChild(b);continue;
+    }
+    if(!inPeriod){
+      b.className="day void";b.disabled=true;b.title="Outside your reserve period";
+      b.innerHTML='<span class="num">'+dt.getDate()+'</span><span class="lbl">—</span>';
+      cal.appendChild(b);continue;
+    }
+    const bit=1<<idx;
+    const isReq=state.req.has(idx);
+    const isOff=!!(view&bit);
+    const gettable=!!(a.union&bit);
+    const isBlocked=!!(a.hits.length&&!gettable&&!isReq);
+    const cls=["day"];
+    if(isOff)cls.push("off");
+    if(isReq)cls.push("req");
+    if(!a.hits.length&&isReq)cls.push("conflict");
+    if(isBlocked)cls.push("blocked");
+    b.className=cls.join(" ");
+    b.innerHTML='<span><span class="num">'+dt.getDate()+'</span>'+
+      (dt.getDate()===1?'<span class="mon">'+MON[dt.getMonth()]+'</span>':'')+'</span>'+
+      '<span class="lbl">'+(idle?"":(isOff?"OFF":"ON"))+'</span>'+(isReq?'<span class="pin"></span>':'');
+    b.setAttribute("aria-pressed",isReq?"true":"false");
+    b.setAttribute("aria-label",fmtLong(dt)+(idle?" — not yet set":" — "+(isOff?"day off":"day on"))+(isReq?", pinned":""));
+    b.title=fmtLong(dt)+(isReq?" — pinned off, tap to release"
+      :(idle?" — tap to pin off":(gettable?" — tap to pin off":" — can't be off with your current pins")));
+    b.addEventListener("click",()=>{
+      if(isBlocked){
+        note(fmtLong(dt)+" can't be off alongside the days you've pinned. Release one to open it back up.");
+        return;
+      }
+      state.req.has(idx)?state.req.delete(idx):state.req.add(idx);
+      note("");
+      recompute(true);
+    });
+    cal.appendChild(b);
+  }
+}
+
+function renderStrip(a){
+  const s=$("strip"),l=$("stripLabels");s.innerHTML="";l.innerHTML="";
+  const view=state.view?state.view.mask:0;
+  for(let d=0;d<state.nDays;d++){
+    const c=document.createElement("div");c.className="cell"+((view&(1<<d))?" do":"");
+    const dt=addDays(state.periodStart,d);
+    c.title=fmtLong(dt)+((view&(1<<d))?" — day off":" — day on");
+    s.appendChild(c);
+    const sp=document.createElement("span");
+    sp.textContent=(d===0||dt.getDate()===1||d===state.nDays-1)?dt.getDate():"";
+    l.appendChild(sp);
+  }
+}
+
+function renderVerdict(a){
+  const v=$("verdict"),n=state.req.size;
+  if(!a.total){
+    v.className="verdict no";v.innerHTML='<p class="headline">No legal pattern for this setup.</p>';
+    $("lockedWrap").hidden=true;$("missWrap").hidden=true;return;
+  }
+  if(!a.hits.length){
+    v.className="verdict no";
+    v.innerHTML='<p class="headline">Those pins don\'t fit together.</p>'+
+      '<p class="sub">The closest any pattern gets is <b>'+a.bestCover+' of '+n+'</b>. This can happen after you change the DBM or the dates.</p>';
+    $("lockedWrap").hidden=true;
+    const sugg=[];
+    for(const d of state.req){
+      const R2=reqMask()&~(1<<d);let c=0;
+      for(const cb of state.combos){for(const m of cb.masks){if((m&R2)===R2){c++;break;}}}
+      if(c>0)sugg.push({d,c});
+    }
+    sugg.sort((x,y)=>y.c-x.c);
+    $("missWrap").hidden=false;
+    $("missBody").innerHTML=sugg.length
+      ? '<p class="note" style="margin:4px 0 6px">Release one of these and it works again:</p><div class="chips">'+
+        sugg.slice(0,3).map(s=>'<span class="chip red">'+fmt(addDays(state.periodStart,s.d))+' → '+s.c+' patterns</span>').join("")+'</div>'
+      : '<p class="note" style="margin:4px 0 0">Releasing any single day still isn\'t enough — start again with Clear all dates.</p>';
+    return;
+  }
+  $("missWrap").hidden=true;
+  const pct=Math.round(a.hits.length/a.total*100);
+  v.className="verdict ok";
+  if(n===0){
+    v.innerHTML='<p class="headline">Nothing pinned yet.</p><p class="sub">This '+state.nDays+'-day period has <b>'+a.total+
+      '</b> legal pattern combinations giving you '+state.off+' days off. Tap the days you want and watch the rest narrow down.</p>';
+  }else{
+    v.innerHTML='<div class="bignum">'+a.hits.length+'<small>/ '+a.total+' patterns fit</small></div>'+
+      '<div class="meter"><span style="width:'+Math.max(2,pct)+'%"></span></div>'+
+      '<p class="sub">'+pct+'% of the legal combinations hold all '+n+' pinned day'+(n===1?"":"s")+'.</p>';
+  }
+  const locked=[];
+  for(let d=0;d<state.nDays;d++) if(!state.req.has(d)&&(a.inter&(1<<d))) locked.push(d);
+  if(locked.length){
+    $("lockedWrap").hidden=false;
+    $("lockedChips").innerHTML=locked.map(d=>'<span class="chip amber">'+fmt(addDays(state.periodStart,d))+'</span>').join("");
+  }else $("lockedWrap").hidden=true;
+}
+
+function renderArrangement(a){
+  const el=$("arrSpec");
+  if(!state.view){
+    $("arrCount").textContent="—";
+    el.innerHTML='<p class="empty">Pin a day off and a pattern that holds it lands on the calendar here.</p>';
+    return;
+  }
+  $("arrCount").textContent="Arrangement "+(state.view.hIdx+1)+" of "+a.hits.length;
+  const g=state.view.combo.gaps[state.view.sIdx],tail=g[g.length-1];
+  const stretches=g.filter((v,i)=>!(v===0&&(i===0||i===g.length-1)));
+  const offDays=[];
+  for(let d=0;d<state.nDays;d++) if(state.view.mask&(1<<d)) offDays.push(d);
+  const runs=[];
+  let run=[offDays[0]];
+  for(let i=1;i<offDays.length;i++){
+    if(offDays[i]===offDays[i-1]+1)run.push(offDays[i]);
+    else{runs.push(run);run=[offDays[i]];}
+  }
+  runs.push(run);
+  el.innerHTML=
+    '<div class="specrow"><span class="k">Pattern</span><span class="v"><b>'+state.view.combo.pat+'</b></span></div>'+
+    '<div class="specrow"><span class="k">Sets of days off</span><span class="v">'+state.view.combo.order.join(" · ")+'</span></div>'+
+    '<div class="specrow"><span class="k">Reserve runs</span><span class="v">'+stretches.join(" · ")+'</span></div>'+
+    '<div class="specrow"><span class="k">Time off</span><span class="v" style="font-family:inherit">'+
+      runs.map(r=>fmt(addDays(state.periodStart,r[0]))+(r.length>1?"–"+fmt(addDays(state.periodStart,r[r.length-1])):"")+
+      ' <span style="color:var(--dim)">('+r.length+'d)</span>').join("<br>")+'</span></div>'+
+    '<div class="specrow"><span class="k">Rolls over</span><span class="v" style="color:var(--muted)">'+tail+
+      ' reserve day'+(tail===1?"":"s")+' into next block</span></div>';
+}
+
+function renderPatterns(a){
+  const el=$("plist");
+  if(!a.hits.length){el.innerHTML='<div class="prow"><span class="empty">Nothing fits right now.</span></div>';return;}
+  const byPat=new Map(),totalByPat=new Map();
+  for(const c of state.combos) totalByPat.set(c.pat,(totalByPat.get(c.pat)||0)+1);
+  a.hits.forEach((h,hIdx)=>{
+    if(!byPat.has(h.c.pat))byPat.set(h.c.pat,[]);
+    byPat.get(h.c.pat).push({h,hIdx});
+  });
+  el.innerHTML="";
+  for(const [pat,list] of [...byPat.entries()].sort((x,y)=>y[1].length-x[1].length)){
+    const tot=totalByPat.get(pat),c0=list[0].h.c;
+    const row=document.createElement("div");row.className="prow";
+    row.innerHTML='<span class="pname">'+pat+'</span>'+
+      (c0.charted&&!c0.inChart?'<span class="tag" title="Legal under 29.01.02 but not on the published A29 chart">not in chart</span>':'')+
+      '<span class="pbar"><span style="width:'+Math.round(list.length/tot*100)+'%"></span></span>'+
+      '<span class="pct">'+list.length+' / '+tot+'</span>';
+    el.appendChild(row);
+    const ow=document.createElement("div");ow.className="orders";
+    list.slice(0,14).forEach(({h,hIdx})=>{
+      const b=document.createElement("button");b.type="button";b.className="ord";
+      b.textContent=h.c.order.join("-");
+      if(state.view&&state.view.hIdx===hIdx)b.classList.add("active");
+      b.addEventListener("click",()=>{
+        const same=state.view&&state.view.hIdx===hIdx;
+        const pos=same?(h.ok.indexOf(state.view.sIdx)+1)%h.ok.length:0;
+        state.view={hIdx,sIdx:h.ok[pos],mask:h.c.masks[h.ok[pos]],combo:h.c};
+        render();
+      });
+      ow.appendChild(b);
+    });
+    if(list.length>14){const s=document.createElement("span");s.className="ord";s.style.cursor="default";s.textContent="+"+(list.length-14);ow.appendChild(s);}
+    el.appendChild(ow);
+  }
+}
+
+function stepArrangement(dir){
+  const a=state.A;
+  if(!a||!a.hits.length)return;
+  const h=((state.view?state.view.hIdx:0)+dir+a.hits.length)%a.hits.length;
+  const hit=a.hits[h];
+  state.view={hIdx:h,sIdx:hit.ok[0],mask:hit.c.masks[hit.ok[0]],combo:hit.c};
+  render();
+}
+
+/* ===================== wiring ===================== */
+function blockDates(i,y){const b=BLOCKS[i];return{s:new Date(y,b.s.m,b.s.d),e:new Date(y,b.e.m,b.e.d)};}
+function applyBlock(){
+  const {s,e}=blockDates(state.monthIdx,state.year);
+  state.blockStart=s;state.blockEnd=e;
+  $("startD").value=iso(s);$("endD").value=iso(e);
+  state.partial=false;$("partial").checked=false;
+  state.periodStart=s;state.periodEnd=e;
+  refresh(true);
+}
+function refresh(clearReq){
+  state.blockDays=span(state.blockStart,state.blockEnd);
+  if(!state.partial){state.periodStart=state.blockStart;state.periodEnd=state.blockEnd;}
+  state.nDays=span(state.periodStart,state.periodEnd);
+  const req=requiredOff(state.blockDays,state.dbm);
+  state.off=state.partial?Math.ceil(req*state.nDays/state.blockDays):req;
+  $("pStart").value=iso(state.periodStart);$("pEnd").value=iso(state.periodEnd);
+  $("pStart").disabled=$("pEnd").disabled=!state.partial;
+  $("partialNote").innerHTML=state.partial
+    ? 'Allotment under 29.01.03: <b>'+req+' × '+state.nDays+' ÷ '+state.blockDays+' = '+(req*state.nDays/state.blockDays).toFixed(2)+
+      '</b>, rounded up to <b>'+state.off+' days off</b>. The set-count minimum is relaxed for a short period; set sizes and reserve runs still hold. '+
+      'Under 29.01.03.01, a pilot finishing transition training still can\'t end up below '+(state.blockDays>=31?13:12)+
+      ' days off for the whole block period.'
+    : 'Use this if training or a transfer means you only sit reserve for part of the block period.';
+  if(clearReq)state.req.clear();
+  for(const d of [...state.req]) if(d<0||d>=state.nDays) state.req.delete(d);
+  state.view=null;note("");
+  $("rangeTxt").textContent=fmt(state.blockStart)+" → "+fmt(state.blockEnd)+", "+state.blockEnd.getFullYear();
+  buildCombos();
+  recompute(false);
+}
+
+const now=new Date(),ySel=$("ySel"),mSel=$("mSel");
+/* the month and year options live in the markup, so the controls work even if this script fails.
+   only add a year if the pilot's clock sits outside the range hard-coded above. */
+(function(){
+  for(var y=now.getFullYear()-1;y<=now.getFullYear()+3;y++){
+    var have=false;
+    for(var i=0;i<ySel.options.length;i++) if(+ySel.options[i].value===y) have=true;
+    if(!have){var o=document.createElement("option");o.value=y;o.textContent=y;ySel.appendChild(o);}
+  }
+  var list=[].slice.call(ySel.options).sort(function(a,b){return +a.value-+b.value;});
+  for(var j=0;j<list.length;j++) ySel.appendChild(list[j]);
+})();
+let dy=now.getFullYear(),di=0,found=false;
+for(let i=0;i<12;i++){const {s}=blockDates(i,dy);if(s>now){di=i;found=true;break;}}
+if(!found){dy+=1;di=0;}
+state.year=dy;state.monthIdx=di;ySel.value=dy;mSel.value=di;
+applyBlock();
+
+mSel.addEventListener("change",()=>{state.monthIdx=+mSel.value;applyBlock();});
+ySel.addEventListener("change",()=>{state.year=+ySel.value;applyBlock();});
+$("dbm").addEventListener("change",()=>{const v=parseInt($("dbm").value,10);state.dbm=Number.isFinite(v)?v:Infinity;refresh(false);});
+$("carry").addEventListener("change",()=>{const v=parseInt($("carry").value,10);state.carry=Math.max(0,Math.min(5,Number.isFinite(v)?v:0));$("carry").value=state.carry;refresh(false);});
+$("btnReset").addEventListener("click",applyBlock);
+$("startD").addEventListener("change",()=>{const d=fromISO($("startD").value);
+  if(d&&d<state.blockEnd){state.blockStart=d;state.periodStart=d;refresh(true);}else $("startD").value=iso(state.blockStart);});
+$("endD").addEventListener("change",()=>{const d=fromISO($("endD").value);
+  if(d&&d>state.blockStart){state.blockEnd=d;state.periodEnd=d;refresh(true);}else $("endD").value=iso(state.blockEnd);});
+$("partial").addEventListener("change",()=>{
+  state.partial=$("partial").checked;
+  if(state.partial){state.periodStart=state.blockStart;state.periodEnd=addDays(state.blockEnd,-7);}
+  refresh(true);
+});
+$("pStart").addEventListener("change",()=>{const d=fromISO($("pStart").value);
+  if(d&&d>=state.blockStart&&d<=state.periodEnd){state.periodStart=d;refresh(true);}else $("pStart").value=iso(state.periodStart);});
+$("pEnd").addEventListener("change",()=>{const d=fromISO($("pEnd").value);
+  if(d&&d<=state.blockEnd&&d>=state.periodStart){state.periodEnd=d;refresh(true);}else $("pEnd").value=iso(state.periodEnd);});
+$("btnClear").addEventListener("click",()=>{state.req.clear();note("");recompute(true);});
+$("btnPrev").addEventListener("click",()=>stepArrangement(-1));
+$("btnNext").addEventListener("click",()=>stepArrangement(1));
+$("btnPrev2").addEventListener("click",()=>stepArrangement(-1));
+$("btnNext2").addEventListener("click",()=>stepArrangement(1));
+$("btnWeekends").addEventListener("click",()=>{
+  /* pin weekend days one at a time, skipping any that would break the set */
+  for(let d=0;d<state.nDays;d++){
+    const w=addDays(state.periodStart,d).getDay();
+    if(w!==0&&w!==6)continue;
+    if(state.req.has(d))continue;
+    if(!(state.A.union&(1<<d)))continue;
+    state.req.add(d);
+    state.A=analyse();
+    if(!state.A.hits.length){state.req.delete(d);state.A=analyse();}
+  }
+  recompute(true);
+});
+})();
+</script>
+</body>
+</html>
